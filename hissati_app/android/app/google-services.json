@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "997944359029",
+    "project_id": "hissati-5f1a1",
+    "storage_bucket": "hissati-5f1a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997944359029:android:67d2725908f118317a603c",
+        "android_client_info": {
+          "package_name": "com.hissati.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_l8cU-8bwymiaZRF6IWV6khRN-Y1vQws"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
