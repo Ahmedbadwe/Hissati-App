@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_user.dart';
 import '../models/tutor_offer.dart';
+import '../models/parent_request.dart';
 import '../controllers/feed_controller.dart';
 import '../controllers/filter_controller.dart';
 import '../services/auth_service.dart';
