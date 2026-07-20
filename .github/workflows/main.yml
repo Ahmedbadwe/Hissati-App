@@ -55,6 +55,78 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
 
+      # The repo doesn't commit these Android resource files, so AAPT fails with
+      # "resource style/LaunchTheme not found" / "mipmap/ic_launcher not found"
+      # without them. Each block only writes a file if it's missing, so this is
+      # safe to leave in even after you commit real assets later.
+      - name: Create missing Android res files
+        working-directory: hissati_app
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/app/src/main/res/drawable-v21
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/values-night
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
+          if [ ! -f android/app/src/main/res/values/styles.xml ]; then
+            cat > android/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+                  <item name="android:windowBackground">@drawable/launch_background</item>
+              </style>
+              <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+                  <item name="android:windowBackground">@android:color/white</item>
+              </style>
+          </resources>
+          EOF
+          fi
+
+          if [ ! -f android/app/src/main/res/values-night/styles.xml ]; then
+            cp android/app/src/main/res/values/styles.xml \
+               android/app/src/main/res/values-night/styles.xml
+          fi
+
+          if [ ! -f android/app/src/main/res/drawable/launch_background.xml ]; then
+            cat > android/app/src/main/res/drawable/launch_background.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:drawable="@android:color/white" />
+          </layer-list>
+          EOF
+          fi
+
+          if [ ! -f android/app/src/main/res/drawable-v21/launch_background.xml ]; then
+            cp android/app/src/main/res/drawable/launch_background.xml \
+               android/app/src/main/res/drawable-v21/launch_background.xml
+          fi
+
+          pip3 install --quiet Pillow
+
+          python3 - << 'EOF'
+          from PIL import Image
+          import os
+
+          sizes = {
+              'mipmap-mdpi': 48,
+              'mipmap-hdpi': 72,
+              'mipmap-xhdpi': 96,
+              'mipmap-xxhdpi': 144,
+              'mipmap-xxxhdpi': 192,
+          }
+          base = 'android/app/src/main/res'
+          for folder, size in sizes.items():
+              path = os.path.join(base, folder, 'ic_launcher.png')
+              if not os.path.exists(path):
+                  img = Image.new('RGBA', (size, size), (63, 81, 181, 255))
+                  img.save(path)
+          print('Icons ready.')
+          EOF
+
       - name: Get Flutter Dependencies
         working-directory: hissati_app
         run: flutter pub get
