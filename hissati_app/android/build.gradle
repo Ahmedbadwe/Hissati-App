@@ -6,18 +6,23 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
-    afterEvaluate {
-        if (it.hasProperty('android')) {
-            it.android {
-                if (compileSdkVersion < 35) {
-                    compileSdkVersion 35
-                }
-            }
+    
+    // ✅ استبدل afterEvaluate بهذا
+    plugins.withId("com.android.application") {
+        android {
+            compileSdkVersion 35
+        }
+    }
+    plugins.withId("com.android.library") {
+        android {
+            compileSdkVersion 35
         }
     }
 }
