@@ -16,16 +16,10 @@ if (localPropertiesFile.exists()) {
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
 
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace "com.hissati.app"
-    compileSdk 36
-    ndkVersion flutter.ndkVersion
+    compileSdk 35
+    ndkVersion "27.0.12077973"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -38,34 +32,18 @@ android {
 
     defaultConfig {
         applicationId "com.hissati.app"
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 36
+        minSdkVersion 21
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
     }
 
-    signingConfigs {
-        release {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-                storePassword keystoreProperties['storePassword']
-            }
-        }
-    }
-
     buildTypes {
         release {
-            // Falls back to debug signing when key.properties isn't present (e.g. a CI
-            // run without the keystore secrets configured yet), so the build still
-            // succeeds. Once key.properties exists, this automatically switches to the
-            // real release signing config — required before uploading to Play Console.
-            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
