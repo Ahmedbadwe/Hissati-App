@@ -26,6 +26,54 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Create missing Android res files
+        run: |
+          mkdir -p hissati_app/android/app/src/main/res/drawable
+          mkdir -p hissati_app/android/app/src/main/res/drawable-v21
+          mkdir -p hissati_app/android/app/src/main/res/values
+          mkdir -p hissati_app/android/app/src/main/res/values-night
+          mkdir -p hissati_app/android/app/src/main/res/mipmap-mdpi
+          mkdir -p hissati_app/android/app/src/main/res/mipmap-hdpi
+          mkdir -p hissati_app/android/app/src/main/res/mipmap-xhdpi
+          mkdir -p hissati_app/android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p hissati_app/android/app/src/main/res/mipmap-xxxhdpi
+
+          cat > hissati_app/android/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+                  <item name="android:windowBackground">@drawable/launch_background</item>
+              </style>
+              <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+                  <item name="android:windowBackground">@android:color/white</item>
+              </style>
+          </resources>
+          EOF
+
+          cp hissati_app/android/app/src/main/res/values/styles.xml \
+             hissati_app/android/app/src/main/res/values-night/styles.xml
+
+          cat > hissati_app/android/app/src/main/res/drawable/launch_background.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:drawable="@android:color/white" />
+          </layer-list>
+          EOF
+
+          cp hissati_app/android/app/src/main/res/drawable/launch_background.xml \
+             hissati_app/android/app/src/main/res/drawable-v21/launch_background.xml
+
+          python3 -c "
+          from PIL import Image, ImageDraw
+          import os
+          sizes = {'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+          base = 'hissati_app/android/app/src/main/res'
+          for folder, size in sizes.items():
+              img = Image.new('RGBA', (size, size), (63, 81, 181, 255))
+              img.save(os.path.join(base, folder, 'ic_launcher.png'))
+          print('Icons created!')
+          "
+
       - name: Get Flutter Dependencies
         working-directory: hissati_app
         run: flutter pub get
