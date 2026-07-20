@@ -9,7 +9,6 @@ jobs:
   build:
     name: Build Android App
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,6 +25,36 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Decode Firebase config if it's stored as a secret (not committed to the repo).
+      # Skips silently if the secret isn't set — remove this step if google-services.json
+      # is already committed to hissati_app/android/app/.
+      - name: Restore google-services.json
+        if: ${{ env.HAS_GOOGLE_SERVICES == 'true' }}
+        working-directory: hissati_app
+        run: echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+
+      # Decode the release keystore if it's stored as a secret.
+      # Skips silently if the secret isn't set — without it, the build below falls back
+      # to Flutter's default debug signing, which Play Console will reject on upload.
+      - name: Restore release keystore
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        working-directory: hissati_app
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
+          cat > android/key.properties << EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=release-keystore.jks
+          EOF
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+
       - name: Get Flutter Dependencies
         working-directory: hissati_app
         run: flutter pub get
@@ -40,3 +69,6 @@ jobs:
           name: Hissati-App-Final
           path: hissati_app/build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
+    env:
+      HAS_GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 != '' }}
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
