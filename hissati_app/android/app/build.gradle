@@ -58,7 +58,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            // Falls back to debug signing when key.properties isn't present (e.g. a CI
+            // run without the keystore secrets configured yet), so the build still
+            // succeeds. Once key.properties exists, this automatically switches to the
+            // real release signing config — required before uploading to Play Console.
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
