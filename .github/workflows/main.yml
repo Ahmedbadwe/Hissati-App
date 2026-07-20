@@ -9,6 +9,7 @@ jobs:
   build:
     name: Build Android App
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -25,108 +26,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # Decode Firebase config if it's stored as a secret (not committed to the repo).
-      # Skips silently if the secret isn't set — remove this step if google-services.json
-      # is already committed to hissati_app/android/app/.
-      - name: Restore google-services.json
-        if: ${{ env.HAS_GOOGLE_SERVICES == 'true' }}
-        working-directory: hissati_app
-        run: echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
-        env:
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-
-      # Decode the release keystore if it's stored as a secret.
-      # Skips silently if the secret isn't set — without it, the build below falls back
-      # to Flutter's default debug signing, which Play Console will reject on upload.
-      - name: Restore release keystore
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
-        working-directory: hissati_app
-        run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
-          cat > android/key.properties << EOF
-          storePassword=$KEYSTORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=release-keystore.jks
-          EOF
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-
-      # The repo doesn't commit these Android resource files, so AAPT fails with
-      # "resource style/LaunchTheme not found" / "mipmap/ic_launcher not found"
-      # without them. Each block only writes a file if it's missing, so this is
-      # safe to leave in even after you commit real assets later.
-      - name: Create missing Android res files
-        working-directory: hissati_app
-        run: |
-          mkdir -p android/app/src/main/res/drawable
-          mkdir -p android/app/src/main/res/drawable-v21
-          mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/values-night
-          mkdir -p android/app/src/main/res/mipmap-mdpi
-          mkdir -p android/app/src/main/res/mipmap-hdpi
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-
-          if [ ! -f android/app/src/main/res/values/styles.xml ]; then
-            cat > android/app/src/main/res/values/styles.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
-                  <item name="android:windowBackground">@drawable/launch_background</item>
-              </style>
-              <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-                  <item name="android:windowBackground">@android:color/white</item>
-              </style>
-          </resources>
-          EOF
-          fi
-
-          if [ ! -f android/app/src/main/res/values-night/styles.xml ]; then
-            cp android/app/src/main/res/values/styles.xml \
-               android/app/src/main/res/values-night/styles.xml
-          fi
-
-          if [ ! -f android/app/src/main/res/drawable/launch_background.xml ]; then
-            cat > android/app/src/main/res/drawable/launch_background.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:drawable="@android:color/white" />
-          </layer-list>
-          EOF
-          fi
-
-          if [ ! -f android/app/src/main/res/drawable-v21/launch_background.xml ]; then
-            cp android/app/src/main/res/drawable/launch_background.xml \
-               android/app/src/main/res/drawable-v21/launch_background.xml
-          fi
-
-          pip3 install --quiet Pillow
-
-          python3 - << 'EOF'
-          from PIL import Image
-          import os
-
-          sizes = {
-              'mipmap-mdpi': 48,
-              'mipmap-hdpi': 72,
-              'mipmap-xhdpi': 96,
-              'mipmap-xxhdpi': 144,
-              'mipmap-xxxhdpi': 192,
-          }
-          base = 'android/app/src/main/res'
-          for folder, size in sizes.items():
-              path = os.path.join(base, folder, 'ic_launcher.png')
-              if not os.path.exists(path):
-                  img = Image.new('RGBA', (size, size), (63, 81, 181, 255))
-                  img.save(path)
-          print('Icons ready.')
-          EOF
-
       - name: Get Flutter Dependencies
         working-directory: hissati_app
         run: flutter pub get
@@ -141,6 +40,3 @@ jobs:
           name: Hissati-App-Final
           path: hissati_app/build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
-    env:
-      HAS_GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 != '' }}
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
