@@ -15,7 +15,7 @@ subprojects {
 subprojects {
     plugins.withId("com.android.library") {
         android {
-            compileSdkVersion 35
+            compileSdkVersion 36
         }
     }
 }
