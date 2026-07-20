@@ -1,27 +1,42 @@
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+name: Build Android App Bundle
 
-rootProject.buildDir = "../build"
-subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
-subprojects {
-    plugins.withId("com.android.library") {
-        android {
-            compileSdkVersion 35
-            
-        }
-    }
-}
+jobs:
+  build:
+    name: Build Android App
+    runs-on: ubuntu-latest
 
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
-}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter Dependencies
+        working-directory: hissati_app
+        run: flutter pub get
+
+      - name: Build Android App Bundle (AAB)
+        working-directory: hissati_app
+        run: flutter build appbundle --release --no-tree-shake-icons
+
+      - name: Upload Final App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hissati-App-Final
+          path: hissati_app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 7
